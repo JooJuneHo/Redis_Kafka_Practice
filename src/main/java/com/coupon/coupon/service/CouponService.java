@@ -6,16 +6,20 @@ import com.coupon.coupon.repository.CouponIssueRepository;
 import com.coupon.coupon.repository.CouponRepository;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import org.redisson.api.RLock;
+import org.redisson.api.RedissonClient;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
+
+import java.util.concurrent.TimeUnit;
 
 @Service
 @RequiredArgsConstructor
 public class CouponService {
     private final CouponRepository couponRepository;
-
     private final CouponIssueRepository couponIssueRepository;
+    private final RedissonClient redissonClient;
 
     @Transactional
     public Long create(String name, int totalQuantity) {
