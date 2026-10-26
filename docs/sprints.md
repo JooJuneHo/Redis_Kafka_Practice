@@ -46,3 +46,23 @@
 - 결과: 수량 100 쿠폰에 동시 1000건 → **766건 발급** (`issued_quantity`는 100). Lost Update 재현 성공.
 - 변경: PostgreSQL은 Docker 대신 로컬 설치본 사용. DB 비밀번호는 `.env`(gitignore)로 분리.
 - 배운 점: Windows PowerShell 5.1에서 `Get-Content | docker run`은 한글이 깨짐 → k6는 볼륨 마운트로 실행.
+
+### 스프린트 2 (완료)
+- 결과: `/issue/lock`(Redisson 분산락), `/issue/redis`(`SADD`+`INCR`) 둘 다 동시 1000건에 발급 정확히 100건.
+- 변경: `spring-boot-starter-data-redis`는 따로 추가하지 않음. Redisson 스타터에 이미 포함되어 있어 `StringRedisTemplate`을 바로 사용.
+- 배운 점: 락은 트랜잭션 **바깥**에서 잡아야 함 (락 → 트랜잭션 시작 → 커밋 → 락 해제). 원자 연산 방식은 락 대기가 없어 더 빠르고, 기준이 DB가 아니라 Redis 카운터가 됨.
+
+### 스프린트 3 (완료 2026-10-26)
+- 결과
+  - S3-5: 같은 메시지(`1:998`)를 console producer로 두 번 발행 → insert 2회 중 두 번째가 unique 위반, `중복 무시` 한 번 출력, 재시도 없음. DB 1행.
+  - S3-6: `1:13` 발행 → 1초 간격 재시도 2회(`Seeking to offset ...` 로그) 후 DLT로 이동, 뒤에 보낸 `1:9001`/`1:9002`는 정상 저장.
+- 변경
+  - 컨슈머 앱도 Redisson 빈을 만들기 때문에 8081만 띄울 때도 Redis가 켜져 있어야 함.
+  - DLT 토픽 이름을 `coupon-issued.DLT` → `coupon-issued-dlt`로 변경 (Spring Kafka 4.x 기본값).
+  - S3-6 검증은 k6 대신 console producer로 13번 메시지를 직접 보내서 함.
+- 배운 점
+  - Kafka는 "최소 한 번" 전달 → 컨슈머는 멱등이어야 함. 판정은 DB unique 제약에 맡기고, 위반은 catch로 삼켜야 재시도로 안 넘어감.
+  - 예외 종류를 나눠야 함: "다시 해도 소용없는 정상 상황"(중복)은 삼키고, 진짜 실패는 재시도 후 DLT.
+  - 같은 key는 같은 파티션 → 순서대로 처리되므로, 실패 메시지가 재시도하는 동안 뒤 메시지가 기다림. 무한 재시도면 파티션이 막힘.
+  - DLT 이름을 틀리면 Kafka가 토픽을 **파티션 1개로 자동 생성**해서 조용히 그쪽으로 감. 원래 파티션 번호로 보내기 때문에 파티션 수가 다르면 전송 실패할 수 있음. `kafka-topics.sh --list`로 확인할 것.
+- 마무리: DLT 토픽 이름 변경 후 파티션 3개로 늘어난 것 확인, `userId == 13` 실패 코드 제거.

@@ -4,6 +4,7 @@ import com.coupon.coupon.domain.CouponIssue;
 import com.coupon.coupon.repository.CouponIssueRepository;
 import lombok.RequiredArgsConstructor;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Component;
 
@@ -16,6 +17,10 @@ public class CouponIssueConsumer {
     public void consume(ConsumerRecord<String, String> record) {
         Long couponId = Long.valueOf(record.key());
         Long userId = Long.valueOf(record.value());
-        couponIssueRepository.save(new CouponIssue(couponId, userId));
+        try{
+            couponIssueRepository.save(new CouponIssue(couponId, userId));
+        } catch (DataIntegrityViolationException e) {
+            System.out.println("중복 무시 : " + userId);
+        }
     }
 }
