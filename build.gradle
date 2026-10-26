@@ -30,6 +30,7 @@ dependencies {
     runtimeOnly 'org.postgresql:postgresql'
 //    implementation 'org.springframework.boot:spring-boot-starter-data-redis'
     implementation 'org.redisson:redisson-spring-boot-starter:4.8.0'
+    implementation 'org.springframework.boot:spring-boot-starter-kafka'
 }
 
 tasks.named('test') {

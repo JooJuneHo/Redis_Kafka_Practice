@@ -1,6 +1,7 @@
 package com.coupon.coupon.controller;
 
 import com.coupon.coupon.dto.CouponRequestDto;
+import com.coupon.coupon.service.CouponKafkaService;
 import com.coupon.coupon.service.CouponLockService;
 import com.coupon.coupon.service.CouponRedisService;
 import com.coupon.coupon.service.CouponService;
@@ -17,6 +18,7 @@ public class CouponController {
     private final CouponService couponService;
     private final CouponLockService couponLockService;
     private final CouponRedisService couponRedisService;
+    private final CouponKafkaService couponKafkaService;
 
     @PostMapping
     public Long create(@RequestBody CouponRequestDto couponRequestDto) {
@@ -36,5 +38,10 @@ public class CouponController {
     @PostMapping("/{id}/issue/redis")
     public void issueWithRedis(@PathVariable Long id, @RequestParam Long userId) {
         couponRedisService.issue(id, userId);
+    }
+
+    @PostMapping("/{id}/issue/kafka")
+    public void issueWithKafka(@PathVariable Long id, @RequestParam Long userId) {
+        couponKafkaService.issue(id, userId);
     }
 }
